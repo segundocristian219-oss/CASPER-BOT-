@@ -1,89 +1,107 @@
-import yts from "yt-search"
-import axios from "axios"
+import axios from "axios";
+import yts from "yt-search";
+import fs from "fs";
+import path from "path";
+import ffmpeg from "fluent-ffmpeg";
+import { promisify } from "util";
+import { pipeline } from "stream";
 
-const API_URL = "https://api-adonix.ultraplus.click/download/ytaudio"
-const API_KEY = "Angxlllll"
+const streamPipe = promisify(pipeline);
 
-const handler = async (m, { conn, args }) => {
-  const query = args.join(" ").trim()
-  if (!query) return m.reply("🎶 Ingresa el nombre del video de YouTube.")
+const handler = async (msg, { conn, text }) => {
+  const pref = global.prefixes?.[0] || ".";
 
-  await conn.sendMessage(m.chat, {
-    react: { text: "🕘", key: m.key }
-  })
+  if (!text || !text.trim()) {
+    return conn.sendMessage(
+      msg.key.remoteJid,
+      { text: `✳️ Usa:\n${pref}play <término>\nEj: *${pref}play* bad bunny diles` },
+      { quoted: msg }
+    );
+  }
+
+  await conn.sendMessage(msg.key.remoteJid, {
+    react: { text: "🕒", key: msg.key }
+  });
+
+  const res = await yts(text);
+  const video = res.videos[0];
+  if (!video) {
+    return conn.sendMessage(
+      msg.key.remoteJid,
+      { text: "❌ Sin resultados." },
+      { quoted: msg }
+    );
+  }
+
+  const { url: videoUrl, title, timestamp: duration, author, thumbnail } = video;
+  const artista = author.name;
 
   try {
-    const search = await yts(query)
-    const video = search?.videos?.[0]
-    if (!video) throw 0
+    const infoMsg = `
+> *𝚈𝙾𝚄𝚃𝚄𝙱𝙴 𝙳𝙾𝚆𝙽𝙻𝙾𝙰𝙳𝙴𝚁*
+
+🎵 *𝚃𝚒𝚝𝚞𝚕𝚘:* ${title}
+🎤 *𝙰𝚛𝚝𝚒𝚜𝚝𝚊:* ${artista}
+🕑 *𝙳𝚞𝚛𝚊𝚌𝚒ó𝚗:* ${duration}
+`.trim();
 
     await conn.sendMessage(
-      m.chat,
-      {
-        image: { url: video.thumbnail },
-        caption: `
-✧━───『 𝙄𝙣𝙛𝙤 𝙙𝙚𝙡 𝙑𝙞𝙙𝙚𝙤 』───━✧
+      msg.key.remoteJid,
+      { image: { url: thumbnail }, caption: infoMsg },
+      { quoted: msg }
+    );
 
-🎼 Título: ${video.title}
-📺 Canal: ${video.author?.name || "—"}
-👁️ Vistas: ${formatViews(video.views)}
-⏳ Duración: ${video.timestamp || "—"}
-`.trim()
-      },
-      { quoted: m }
-    )
+    const api = `https://api.neoxr.eu/api/youtube?url=${encodeURIComponent(videoUrl)}&type=audio&quality=128kbps&apikey=russellxz`;
+    const r = await axios.get(api);
+    if (!r.data?.status || !r.data.data?.url) throw new Error("No se pudo obtener el audio");
 
-    const { data } = await axios.get(API_URL, {
-      params: {
-        url: video.url,
-        apikey: API_KEY
-      },
-      headers: {
-        "User-Agent": "Mozilla/5.0",
-        "Accept": "application/json"
-      },
-      timeout: 20000
-    })
+    const tmp = path.join(process.cwd(), "tmp");
+    if (!fs.existsSync(tmp)) fs.mkdirSync(tmp);
+    const inFile = path.join(tmp, `${Date.now()}_in.m4a`);
+    const outFile = path.join(tmp, `${Date.now()}_out.mp3`);
 
-    const audioUrl =
-      data?.data?.url ||
-      data?.datos?.url ||
-      null
+    const dl = await axios.get(r.data.data.url, { responseType: "stream" });
+    await streamPipe(dl.data, fs.createWriteStream(inFile));
 
-    if (!audioUrl || !/^https?:\/\//i.test(audioUrl)) throw 0
+    await new Promise((res, rej) =>
+      ffmpeg(inFile)
+        .audioCodec("libmp3lame")
+        .audioBitrate("128k")
+        .format("mp3")
+        .save(outFile)
+        .on("end", res)
+        .on("error", rej)
+    );
+
+    const buffer = fs.readFileSync(outFile);
 
     await conn.sendMessage(
-      m.chat,
+      msg.key.remoteJid,
       {
-        audio: { url: audioUrl },
+        audio: buffer,
         mimetype: "audio/mpeg",
-        fileName: cleanName(video.title) + ".mp3",
+        fileName: `${title}.mp3`,
         ptt: false
       },
-      { quoted: m }
-    )
+      { quoted: msg }
+    );
 
-    await conn.sendMessage(m.chat, {
-      react: { text: "✅", key: m.key }
-    })
+    fs.unlinkSync(inFile);
+    fs.unlinkSync(outFile);
 
-  } catch {
-    await m.reply("❌ Error al obtener el audio.")
+    await conn.sendMessage(msg.key.remoteJid, {
+      react: { text: "✅", key: msg.key }
+    });
+  } catch (e) {
+    console.error(e);
+    await conn.sendMessage(
+      msg.key.remoteJid,
+      { text: "⚠️ Error al descargar el audio." },
+      { quoted: msg }
+    );
   }
-}
+};
 
-const cleanName = t =>
-  t.replace(/[^\w\s.-]/gi, "").substring(0, 60)
+handler.command = ["play"];
 
-const formatViews = v => {
-  if (typeof v !== "number") return v
-  if (v >= 1e9) return (v / 1e9).toFixed(1) + "B"
-  if (v >= 1e6) return (v / 1e6).toFixed(1) + "M"
-  if (v >= 1e3) return (v / 1e3).toFixed(1) + "K"
-  return v.toString()
-}
-
-handler.command = ["play", "yt", "mp3"]
-handler.tags = ["descargas"]
-
-export default handler
+export default handler;
