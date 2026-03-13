@@ -53,7 +53,6 @@ let handler = async (m, { conn, args, command }) => {
 Ejemplo: *.ytmp3 autos edits*`)
 
     const isAudio = ['play', 'mp3', 'audio', 'song', 'music', 'ytmp3'].includes(command)
-    global.react(conn, m, isAudio ? "🎵" : "🎬")
 
     try {
         let videoUrl = input
@@ -64,7 +63,6 @@ Ejemplo: *.ytmp3 autos edits*`)
         const data = await getYoutubeData(videoUrl, 'video')
         const { title, uploader, duration_string: duration, thumbnail, download } = data
 
-        global.react(conn, m, "⬇️")
 
         // Descargar buffer una sola vez
         const res = await axios.get(download.url, { responseType: 'arraybuffer' })
@@ -109,12 +107,9 @@ Ejemplo: *.ytmp3 autos edits*`)
             }, { quoted: m })
         }
 
-        global.react(conn, m, "✅")
-
     } catch (e) {
         console.error('[YOUTUBE_ERROR]', e)
         m.reply(`❌ *Error:* ${e.message}`)
-        global.react(conn, m, "❌")
     }
 }
 
