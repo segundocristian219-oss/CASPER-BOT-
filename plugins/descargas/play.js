@@ -97,6 +97,6 @@ function pickFromArray(arr) {
 
 handler.help = ['ytmp3']
 handler.tags = ['descargas']
-handler.command = ['play', 'mp3']
+handler.command = ['ytmp3', 'mp3']
 
 export default handler
