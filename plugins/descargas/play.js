@@ -1,122 +1,102 @@
 import fetch from 'node-fetch'
 import yts from 'yt-search'
 
-const APIKEY = 'c50919b9828c357cd81e753f03d4c000'
+const API_KEY = optigei
 
-const handler = async (m, { conn, args }) => {
-
-  const text = args.join(' ')
-
-  if (!text)
-    return m.reply(`🪐 Ingresa un texto o link de YouTube
-Ejemplo: *play autos edits*`)
-
-  let video
-  const isLink = text.includes('youtube.com') || text.includes('youtu.be')
-
+let handler = async (m, { conn, args, usedPrefix, command }) => {
   try {
+    const text = args.join(' ').trim()
 
-    let stage = 'yt-search'
+    if (!text) {
+      return m.reply(`🪐 Ingresa un enlace o texto de YouTube.\nEjemplo: *${usedPrefix + command} autos edits*`)
+    }
+
+    const isLink = text.includes('youtube.com') || text.includes('youtu.be')
+    let video
 
     if (isLink) {
+      const id = text.includes('v=')
+        ? text.split('v=')[1].split('&')[0]
+        : text.split('/').pop()
 
-      const id =
-        text.split('v=')[1]?.split('&')[0] ||
-        text.split('/').pop()
-
-      const res = await yts({ videoId: id })
-      video = res
-
+      const search = await yts({ videoId: id })
+      video = search.videos?.[0]
     } else {
-
-      const res = await yts(text)
-      video = res.videos[0]
-
+      const search = await yts(text)
+      video = search.videos?.[0]
     }
 
-    if (!video)
-      throw new Error('Video no encontrado')
-
-    await conn.sendMessage(
-      m.chat,
-      { text: `🪐 Descargando audio de *${video.title}*...` },
-      { quoted: m }
-    )
-
-    stage = 'api-request'
-
-    const apiURL =
-      `https://optishield.uk/api/?type=youtubedl` +
-      `&apikey=${APIKEY}` +
-      `&url=${encodeURIComponent(video.url)}` +
-      `&video=0`
-
-    const apiRes = await fetch(apiURL)
-
-    stage = 'api-response'
-
-    if (!apiRes.ok)
-      throw new Error(`HTTP ${apiRes.status}`)
-
-    const raw = await apiRes.text()
-
-    let json
-
-    try {
-      json = JSON.parse(raw)
-    } catch {
-      throw new Error(`La API devolvió HTML o texto:\n${raw.slice(0,300)}`)
+    if (!video) {
+      return m.reply('🪐 Video no encontrado.')
     }
 
-    stage = 'json-check'
+    m.react(rwait)
 
-    if (!json?.result?.download) {
-      throw new Error(
-`La API respondió pero no devolvió download
+    const apiUrl = `https://optishield.uk/api/?type=youtubedl&apikey=${API_KEY}&url=${encodeURIComponent(video.url)}`
+    const res = await fetch(apiUrl)
+    const json = await res.json()
 
-Respuesta API:
-${JSON.stringify(json,null,2).slice(0,400)}`
-      )
+    const checkUrl = json?.check_result
+    if (!checkUrl) throw new Error('No se recibió check_result')
+
+    const intervaloMs = 5000
+    const maxWaitMs = 1200000
+    const maxIntentos = Math.ceil(maxWaitMs / intervaloMs)
+
+    let finalData = null
+
+    for (let i = 0; i < maxIntentos; i++) {
+      await new Promise(resolve => setTimeout(resolve, intervaloMs))
+
+      const checkRes = await fetch(checkUrl)
+      const checkJson = await checkRes.json()
+
+      if (checkJson?.status === 'ok' && checkJson?.processed === true) {
+        finalData = checkJson?.result?.data || null
+        break
+      }
     }
 
-    stage = 'send-audio'
+    if (!finalData) throw new Error('La API tardó demasiado en procesar')
+
+    let downloadUrl =
+      finalData?.selected?.audio ||
+      pickFromArray(finalData?.available?.audio)
+
+    if (!downloadUrl) throw new Error('No se encontró enlace de audio disponible')
+
+    const fileRes = await fetch(downloadUrl)
+    if (!fileRes.ok) throw new Error('No se pudo descargar el audio')
+
+    const buffer = await fileRes.buffer()
 
     await conn.sendMessage(
       m.chat,
       {
-        audio: { url: json.result.download },
+        audio: buffer,
         mimetype: 'audio/mpeg',
         fileName: `${video.title}.mp3`
       },
       { quoted: m }
     )
 
+    m.react(done)
   } catch (e) {
-
-    const debug =
-`🌱 Error en comando play
-
-Etapa: ${e.stage || 'desconocida'}
-
-Mensaje:
-${e.message || e}
-
-Stack:
-${(e.stack || '').slice(0,500)}
-`
-
-    await conn.sendMessage(
-      m.chat,
-      { text: debug },
-      { quoted: m }
-    )
-
+    m.reply(`⛅ Error: ${e.message}`)
   }
-
 }
 
-handler.command = ['play','musicdl']
-handler.help = ['play <texto|url>']
+function pickFromArray(arr) {
+  if (!Array.isArray(arr) || arr.length === 0) return null
+  for (const it of arr) {
+    const u = it?.download_url || it?.url || it?.link
+    if (u) return u
+  }
+  return null
+}
+
+handler.help = ['ytmp3']
 handler.tags = ['descargas']
+handler.command = ['play', 'mp3']
 
 export default handler
