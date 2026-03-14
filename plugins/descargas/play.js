@@ -1,36 +1,48 @@
-const handler = async (m, { conn, text }) => {
+import fetch from 'node-fetch'
 
-  if (!text) throw 'Escribe el nombre de la canción'
+const handler = async (m, { conn, text, command }) => {
+
+  await conn.sendMessage(m.chat, {
+    react: { text: '🔥', key: m.key }
+  }).catch(() => {})
+
+  if (!text) throw `Ejemplo:\n${command} yan block`
 
   try {
 
     const res = await fetch(`https://api.ryuzei.xyz/api/play?q=${encodeURIComponent(text)}`)
     const json = await res.json()
 
-    if (!json.status) throw 'No se encontró la canción'
+    if (!json || !json.status) throw 'No se encontró la canción'
 
-    const { title, duration, views, ago, thumbnail } = json.data
-    const audio = json.download.url
+    const info = json.data
+    const audio = json.download?.url
+
+    if (!audio) throw 'No se pudo obtener el audio'
+
+    const caption = `🎵 ${info.title}
+⏱ ${info.duration}
+👁 ${info.views}
+📅 ${info.ago}`
 
     await conn.sendMessage(m.chat, {
-      image: { url: thumbnail },
-      caption:
-`🎵 ${title}
-⏱ ${duration}
-👁 ${views}
-📅 ${ago}`
+      image: { url: info.thumbnail },
+      caption
     }, { quoted: m })
 
     await conn.sendMessage(m.chat, {
       audio: { url: audio },
       mimetype: 'audio/mpeg',
-      fileName: `${title}.mp3`
+      fileName: `${info.title}.mp3`
     }, { quoted: m })
 
-  } catch {
+  } catch (e) {
     throw 'Error al obtener la música'
   }
 }
 
-handler.command = ['play', 'mp3']
+handler.help = ['play <texto>']
+handler.tags = ['downloader']
+handler.command = ['play','mp3']
+
 export default handler
