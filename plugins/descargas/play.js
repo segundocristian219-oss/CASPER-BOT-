@@ -8,9 +8,7 @@ const handler = async (m, { conn, text, command }) => {
 
   try {
 
-    const searchURL = `https://api.ryuzei.xyz/search/yts?q=${encodeURIComponent(text)}`
-
-    const search = await fetch(searchURL, {
+    const search = await fetch(`https://api.ryuzei.xyz/search/yts?q=${encodeURIComponent(text)}`, {
       headers: { "User-Agent": "Mozilla/5.0" }
     })
 
@@ -20,24 +18,27 @@ const handler = async (m, { conn, text, command }) => {
       throw "No encontré resultados"
 
     const video = sjson.results[0]
-    const videoUrl = video.url
 
-    await conn.reply(m.chat, `🎵 ${video.title}\n⏱ ${video.duration}`, m)
+    const dl = await fetch(
+      `https://api.ryuzei.xyz/dl/ytmp3?url=${encodeURIComponent(video.url)}`,
+      { headers: { "User-Agent": "Mozilla/5.0" } }
+    )
 
-    const dlURL = `https://api.ryuzei.xyz/dl/ytmp3?url=${encodeURIComponent(videoUrl)}`
+    const raw = await dl.text()
 
-    const dl = await fetch(dlURL, {
-      headers: { "User-Agent": "Mozilla/5.0" }
-    })
+    if (raw.startsWith("<!DOCTYPE") || raw.startsWith("<html"))
+      throw "La API devolvió HTML (bloqueo o endpoint incorrecto)"
 
-    const json = await dl.json()
+    const json = JSON.parse(raw)
 
-    if (!json.status) throw "Error al convertir a MP3"
+    if (!json.status)
+      throw "API status false"
 
-    const audio = json.download?.url
     const info = json.data
+    const audio = json.download?.url
 
-    if (!audio) throw "No se obtuvo el audio"
+    if (!audio)
+      throw "No se encontró audio"
 
     await conn.sendMessage(m.chat, {
       image: { url: info.thumbnail },
@@ -53,8 +54,16 @@ const handler = async (m, { conn, text, command }) => {
       fileName: `${info.title}.mp3`
     }, { quoted: m })
 
-  } catch (e) {
-    await conn.reply(m.chat, `❌ ERROR\n${e}`, m)
+  } catch (err) {
+
+    await conn.reply(
+      m.chat,
+      `❌ ERROR PLAY
+
+${err}`,
+      m
+    )
+
   }
 }
 
