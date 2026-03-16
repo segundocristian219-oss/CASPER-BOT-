@@ -14,12 +14,12 @@ global.prems = []
 
 global.emoji = '📎'
 global.emoji2 = '🏞️'
-global.namebot = '𝐃𝐗𝐍𝐍𝐘.𝐁𝐎𝐓'
-global.botname = '𝐃𝐗𝐍𝐍𝐘.𝐁𝐎𝐓'
+global.namebot = '𝐍𝐀𝐆𝐈 𝐁𝐎𝐓'
+global.botname = '𝐍𝐀𝐆𝐈 𝐁𝐎𝐓'
 global.banner = 'https://files.catbox.moe/k8k9ha.jpg'
-global.packname = '𝐃𝐗𝐍𝐍𝐘.𝐁𝐎𝐓'
+global.packname = '𝐍𝐀𝐆𝐈 𝐁𝐎𝐓'
 global.author = '𝖣𝖾𝗌𝖺𝗋o𝗅𝗅𝖺𝖽𝗈 𝗉𝗈𝗋 𝐇𝐄𝐑𝐍𝐀𝐍𝐃𝐄𝐙'
-global.sessions = '𝐏𝐀𝐓𝐎 𝐁𝐎𝐓'
+global.sessions = '𝐍𝐀𝐆𝐈 𝐁𝐎𝐓'
 
 global.APIs = {
 sky: 'https://api-sky.ultraplus.click',
