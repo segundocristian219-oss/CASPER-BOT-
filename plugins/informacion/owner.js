@@ -16,7 +16,7 @@ let handler = async (m, { conn }) => {
   const owners = [
     {
       name: '𝖧𝖾𝗋𝗇𝖺𝗇𝖽𝖾𝗌.𝗑𝗒𝗓',
-      desc: `👑 Creador Principal de 𝑺𝑯𝑨𝑫𝑶𝑾 𝑩𝑶𝑻`,
+      desc: `👑 Creador Principal de 𝐍𝐀𝐆𝐈 𝐁𝐎𝐓`,
       image: 'https://cdn.russellxz.click/af65870a.jpeg',
       footer: '𝗄𝗄',
       buttons: [
@@ -76,7 +76,7 @@ let handler = async (m, { conn }) => {
           },
           interactiveMessage: proto.Message.InteractiveMessage.fromObject({
             body: proto.Message.InteractiveMessage.Body.create({
-              text: `👑 Creadores de 𝑺𝑯𝑨𝑫𝑶𝑾 𝑩𝑶𝑻`
+              text: `👑 Creadores de 𝐍𝐀𝐆𝐈 𝐁𝐎𝐓`
             }),
             footer: proto.Message.InteractiveMessage.Footer.create({
               text: 'Conoce a los desarrolladores del bot'
