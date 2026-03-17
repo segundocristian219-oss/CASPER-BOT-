@@ -324,7 +324,7 @@ async function connectionUpdate(update) {
       try {
         const data = JSON.parse(fs.readFileSync(restarterFile, "utf-8"))
         if (data.chatId) {
-          await conn.sendMessage(data.chatId, { text: "✅ *𝐃𝐀𝐍𝐈 𝐁𝐎𝐓 está en línea nuevamente* 🚀" })
+          await conn.sendMessage(data.chatId, { text: "✅ *𝐍𝐀𝐆𝐈 𝐁𝐎𝐓 está en línea nuevamente* 🚀" })
           console.log(chalk.yellow("📢 Aviso enviado al grupo del reinicio."))
           fs.unlinkSync(restarterFile)
         }
