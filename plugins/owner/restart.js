@@ -11,7 +11,7 @@ const handler = async (msg, { conn }) => {
 
   // Mensaje de aviso
   await conn.sendMessage(chatId, {
-    text: "🔄 *𝐃𝐗𝐍𝐍𝐘.𝐁𝐎𝐓 se reiniciará en unos segundos...*"
+    text: "🔄 *𝐍𝐀𝐆𝐈 𝐁𝐎𝐓 se reiniciará en unos segundos...*"
   }, { quoted: msg });
 
   // Guardar chat para notificar luego
